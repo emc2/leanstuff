@@ -1,0 +1,2 @@
+# leanstuff
+Exploration of Lean
