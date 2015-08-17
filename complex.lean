@@ -171,8 +171,8 @@ theorem complex_mul_assoc (A : Type) [r : ring A] :
                      by rewrite -neg_mul_eq_mul_neg
               ... = r1 * (r2 * i3 + i2 * r3) + i1 * (r2 * r3 - i2 * i3) :
                      by rewrite -left_distrib)
-/-
-theorem complex_mul_comm (A : Type) [r : ring A] :
+
+theorem complex_mul_comm (A : Type) [r : comm_ring A] :
   ∀ (c1 c2 : complex_ty A), complex_mul c1 c2 = complex_mul c2 c1 :=
   take c1 : complex_ty A,
   take c2 : complex_ty A,
@@ -183,17 +183,17 @@ theorem complex_mul_comm (A : Type) [r : ring A] :
   in
     show (r1 * r2 - i1 * i2, r1 * i2 + i1 * r2) =
          (r2 * r1 - i2 * i1, r2 * i1 + i2 * r1),
-    from pair_eq (calc r1 * r2 - i1 * i2 = r1 * r2 - i2 * i1 :
+    from pair_eq (calc r1 * r2 - i1 * i2 = r2 * r1 - i1 * i2 :
                     by rewrite mul.comm
                                      ... = r2 * r1 - i2 * i1 :
-                    by rewrite mul.comm)
+                    by rewrite {_ * i1}mul.comm)
                  (calc r1 * i2 + i1 * r2 = i1 * r2 + r1 * i2 :
                     by rewrite add.comm
                                      ... = r2 * i1 + r1 * i2 :
                     by rewrite mul.comm
                                      ... = r2 * i1 + i2 * r1 :
-                    by rewrite mul.comm)
--/
+                    by rewrite {_ * r1}mul.comm)
+
 end complex_ty
 
 end algebra
