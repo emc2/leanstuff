@@ -10,11 +10,11 @@ open prod ring
 definition complex_ty [reducible] (A : Type) : Type := A × A
 
 structure complex [class] (A : Type) :=
-  (C : Type)
-  (mk_complex : A → A → C)
-  (real_part : C → A)
-  (imaginary_part : C → A)
-  (complex_conj : C → C)
+  (ty : Type)
+  (real : A -> ty)
+  (i : ty)
+  (complex_conj : ty → ty)
+  (abs : ty -> A)
 
 namespace complex_ty
 
@@ -39,7 +39,7 @@ definition complex_has_one [instance] {A : Type}
                            has_one (complex_ty A) :=
   ⦃ has_one, one := complex_one ⦄
 
-definition complex_I [reducible] {A : Type} [hz : has_zero A] [hz : has_one A] :
+definition complex_i [reducible] {A : Type} [hz : has_zero A] [hz : has_one A] :
                      complex_ty A := (0, 1)
 
 definition complex_add [reducible] {A : Type} [ha : has_add A]
@@ -82,11 +82,13 @@ definition complex_has_neg [instance] {A : Type} [hn : has_neg A] :
                            has_neg (complex_ty A) :=
   ⦃ has_neg, neg := complex_neg ⦄
 
-definition complex_inv {A : Type} [hi : has_inv A] [ha : has_add A]
-                       [hm : has_mul A] [hn : has_neg A] :
-    complex_ty A -> complex_ty A
-  | (rval, ival) := (rval * ((rval * rval) + (ival * ival))⁻¹,
-                     (-ival) * ((rval * rval) + (ival * ival))⁻¹)
+definition complex_inv [reducible] {A : Type} [hi : has_inv A] [ha : has_add A]
+                                   [hm : has_mul A] [hn : has_neg A]
+                                   (c : complex_ty A) : complex_ty A :=
+  let r := pr1 c,
+      i := pr2 c
+  in
+    (r * ((r * r) + (i * i))⁻¹, -(i * ((r * r) + (i * i))⁻¹))
 
 theorem complex_add_assoc {A : Type} [asg : add_semigroup A] :
   ∀ (c1 c2 c3 : complex_ty A), complex_add (complex_add c1 c2) c3 =
@@ -276,6 +278,44 @@ theorem complex_mul_assoc {A : Type} [r : ring A] :
               ... = r1 * (r2 * i3 + i2 * r3) + i1 * (r2 * r3 - i2 * i3) :
                      by rewrite -left_distrib)
 
+definition complex_semigroup [instance] {A : Type} [r : ring A] :
+                                        semigroup (complex_ty A) :=
+  ⦃ semigroup, mul_assoc := complex_mul_assoc ⦄
+
+theorem complex_one_mul {A : Type} [r : ring A] :
+  ∀ (c : complex_ty A), complex_mul complex_one c = c :=
+  take c : complex_ty A,
+  let r : A := pr1 c,
+      i : A := pr2 c
+  in
+    show (1 * r - 0 * i, 1 * i + 0 * r) = c,
+    from prod.eq (calc pr₁ (1 * r - 0 * i, 1 * i + 0 * r)
+                           = 1 * r - 0 * i : by esimp
+                       ... = r : by rewrite [one_mul, zero_mul, sub_zero])
+                 (calc pr₂ (1 * r - 0 * i, 1 * i + 0 * r)
+                           = 1 * i + 0 * r : by esimp
+                       ... = i : by rewrite [one_mul, zero_mul, add_zero])
+
+theorem complex_mul_one {A : Type} [r : ring A] :
+  ∀ (c : complex_ty A), complex_mul c complex_one = c :=
+  take c : complex_ty A,
+  let r : A := pr1 c,
+      i : A := pr2 c
+  in
+    show (r * 1 - i * 0, r * 0 + i * 1) = c,
+    from prod.eq (calc pr₁ (r * 1 - i * 0, r * 0 + i * 1)
+                           = r * 1 - i * 0 : by esimp
+                       ... = r : by rewrite [mul_one, mul_zero, sub_zero])
+                 (calc pr₂ (r * 1 - i * 0, r * 0 + i * 1)
+                           = r * 0 + i * 1 : by esimp
+                       ... = i : by rewrite [mul_one, mul_zero, zero_add])
+
+definition complex_monoid [instance] {A : Type} [r : ring A] :
+                                     monoid (complex_ty A) :=
+  ⦃ monoid, mul_assoc := complex_mul_assoc,
+            one_mul := complex_one_mul,
+            mul_one := complex_mul_one ⦄
+
 theorem complex_mul_comm {A : Type} [r : comm_ring A] :
   ∀ (c1 c2 : complex_ty A), complex_mul c1 c2 = complex_mul c2 c1 :=
   take c1 : complex_ty A,
@@ -298,6 +338,42 @@ theorem complex_mul_comm {A : Type} [r : comm_ring A] :
                                      ... = r2 * i1 + i2 * r1 :
                     by rewrite {_ * r1}mul.comm)
 
+definition complex_comm_semigroup [instance] {A : Type} [r : comm_ring A] :
+                                  comm_semigroup (complex_ty A) :=
+  ⦃ comm_semigroup, mul_assoc := complex_mul_assoc,
+                    mul_comm := complex_mul_comm ⦄
+
+definition complex_comm_monoid [instance] {A : Type} [r : comm_ring A] :
+                                          comm_monoid (complex_ty A) :=
+  ⦃ comm_monoid, mul_assoc := complex_mul_assoc,
+                 mul_comm := complex_mul_comm,
+                 one_mul := complex_one_mul,
+                 mul_one := complex_mul_one ⦄
+/-
+theorem complex_mul_left_inv {A : Type} [f : field A] [g : group A] :
+  ∀ (c : complex_ty A), complex_mul (complex_inv c) c = complex_one :=
+  take c : complex_ty A,
+  let r : A := pr1 c,
+      i : A := pr2 c
+  in
+    show (r * (r * r + i * i)⁻¹ * r - -(i * (r * r + i * i)⁻¹) * i,
+          r * (r * r + i * i)⁻¹ * i + -(i * (r * r + i * i)⁻¹) * r) = (1, 0),
+    from pair_eq (calc r * (r * r + i * i)⁻¹ * r - -(i * (r * r + i * i)⁻¹) * i
+                           = r * (r * r + i * i)⁻¹ * r +
+                             i * (r * r + i * i)⁻¹ * i :
+                             by rewrite [-neg_mul_eq_neg_mul, sub_neg_eq_add]
+                       ... = r * r * (r * r + i * i)⁻¹ +
+                             i * (r * r + i * i)⁻¹ * i :
+                             by rewrite [mul.comm, -mul.assoc]
+                       ... = r * r * (r * r + i * i)⁻¹ +
+                             i * i * (r * r + i * i)⁻¹ :
+                             by rewrite [{_ * _ * i}mul.comm, -mul.assoc]
+                       ... = (r * r + i * i) * (r * r + i * i)⁻¹ :
+                             by rewrite right_distrib
+                       ... = (r * r + i * i)⁻¹ * (r * r + i * i) :
+                             by rewrite mul.comm
+                       ... = 1 : by rewrite mul.left_inv) _
+-/
 end complex_ty
 
 end algebra
