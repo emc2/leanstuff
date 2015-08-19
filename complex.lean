@@ -440,6 +440,39 @@ definition complex_distrib [instance] {A : Type} [r : comm_ring A] :
   ⦃ distrib, left_distrib := complex_left_distrib,
              right_distrib := complex_right_distrib ⦄
 
+theorem complex_zero_mul {A : Type} [r : ring A] :
+  ∀ (c : complex_ty A), complex_mul complex_zero c = complex_zero :=
+  take c : complex_ty A,
+  let r : A := pr1 c,
+      i : A := pr2 c
+  in
+    show (0 * r - 0 * i, 0 * i + 0 * r) = (0, 0),
+    from prod.eq (calc pr₁ (0 * r - 0 * i, 0 * i + 0 * r)
+                           = 0 * r - 0 * i : by esimp
+                       ... = 0 : by rewrite [*zero_mul, sub_zero])
+                 (calc pr₂ (0 * r - 0 * i, 0 * i + 0 * r)
+                           = 0 * i + 0 * r : by esimp
+                       ... = 0 : by rewrite [*zero_mul, add_zero])
+
+theorem complex_mul_zero {A : Type} [r : ring A] :
+  ∀ (c : complex_ty A), complex_mul c complex_zero = complex_zero :=
+  take c : complex_ty A,
+  let r : A := pr1 c,
+      i : A := pr2 c
+  in
+    show (r * 0 - i * 0, r * 0 + i * 0) = (0, 0),
+    from prod.eq (calc pr₁ (r * 0 - i * 0, r * 0 + i * 0)
+                           = r * 0 - i * 0 : by esimp
+                       ... = 0 : by rewrite [*mul_zero, sub_zero])
+                 (calc pr₂ (r * 0 - i * 0, r * 0 + i * 0)
+                           = r * 0 + i * 0 : by esimp
+                       ... = 0 : by rewrite [*mul_zero, zero_add])
+
+definition complex_mul_zero_class [instance] {A : Type} [r : ring A] :
+                                  mul_zero_class (complex_ty A) :=
+  ⦃ mul_zero_class, zero_mul := complex_zero_mul,
+                    mul_zero := complex_mul_zero ⦄
+
 /-
 theorem complex_mul_left_inv {A : Type} [f : field A] [g : group A] :
   ∀ (c : complex_ty A), complex_mul (complex_inv c) c = complex_one :=
